@@ -2,10 +2,12 @@ module Main exposing (..)
 
 import Debug exposing (log)
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes exposing (placeholder)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Json.Decode exposing (..)
+import Json.Decode as Json
+import Json.Decode.Pipeline exposing (decode, optional, required)
+import String exposing (isEmpty)
 
 
 main =
@@ -22,21 +24,25 @@ main =
 
 
 type alias Model =
-    { cryptoName : Maybe String
-    , cryptoAmount : Maybe Float
+    { typeInput : String
+    , fiatInput : String
+    , amountInput : String
     , fiat : Maybe String
-    , cryptoPrice : Maybe Float
-    , output : String
+    , amount : Maybe Float
+    , valueUSD : Maybe Float
+    , valueFiat : Maybe Float
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { cryptoName = Nothing
-      , cryptoAmount = Nothing
+    ( { typeInput = ""
+      , fiatInput = ""
+      , amountInput = ""
       , fiat = Nothing
-      , cryptoPrice = Nothing
-      , output = ""
+      , amount = Nothing
+      , valueUSD = Nothing
+      , valueFiat = Nothing
       }
     , Cmd.none
     )
@@ -51,33 +57,62 @@ type Msg
     | ChangeCryptoAmount String
     | ChangeFiat String
     | GetCryptoPrice
-    | NewPrice (Result Http.Error String)
+    | NewPrice (Result Http.Error Response)
+
+
+type alias Response =
+    { valueUSD : String
+    , valueFiat : Maybe String
+    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangeCryptoName newName ->
-            ( { model | cryptoName = Just newName }, Cmd.none )
+            ( { model | typeInput = newName }, Cmd.none )
 
         ChangeCryptoAmount newAmount ->
-            ( { model | cryptoAmount = stringToMaybeFloat newAmount }, Cmd.none )
+            ( { model | amountInput = newAmount }, Cmd.none )
 
         ChangeFiat newFiat ->
-            ( { model | fiat = Just newFiat }, Cmd.none )
+            ( { model | fiatInput = newFiat }, Cmd.none )
 
         GetCryptoPrice ->
-            ( model, getCryptoPrice model.cryptoName (stringOrEmpty model.fiat) )
+            ( model, getCryptoPrice model.typeInput model.fiatInput )
 
         NewPrice (Ok newPrice) ->
-            ( { model | cryptoPrice = stringToMaybeFloat newPrice }, Cmd.none )
+            ( { model
+                | valueUSD =
+                    newPrice.valueUSD
+                        |> stringToMaybeFloat
+                , valueFiat =
+                    newPrice.valueFiat
+                        |> stringOrEmpty
+                        |> stringToMaybeFloat
+              }
+            , Cmd.none
+            )
 
         NewPrice (Err e) ->
             let
                 a =
                     log "error" e
             in
-            ( model, Cmd.none )
+            ( { model
+                | valueUSD = Nothing
+                , valueFiat = Nothing
+              }
+            , Cmd.none
+            )
+
+
+emptyIsNothing : String -> Maybe String
+emptyIsNothing string =
+    if string |> isEmpty then
+        Nothing
+    else
+        Just string
 
 
 stringOrEmpty : Maybe String -> String
@@ -104,6 +139,16 @@ stringToMaybeFloat str =
             Nothing
 
 
+zeroFloatIfNothing : Maybe Float -> Float
+zeroFloatIfNothing float =
+    case float of
+        Just f ->
+            f
+
+        Nothing ->
+            0
+
+
 getOutputText : String -> String
 getOutputText inputText =
     let
@@ -118,29 +163,33 @@ getOutputText inputText =
             "Invalid input!"
 
 
-getCryptoPrice : Maybe String -> String -> Cmd Msg
+getCryptoPrice : String -> String -> Cmd Msg
 getCryptoPrice crypto fiat =
-    case crypto of
-        Nothing ->
-            Cmd.none
+    let
+        url =
+            "https://api.coinmarketcap.com/v1/ticker/"
+                ++ crypto
+                ++ "/?convert="
+                ++ fiat
 
-        Just crypto ->
-            let
-                url =
-                    "https://api.coinmarketcap.com/v1/ticker/"
-                        ++ crypto
-                        ++ "/?convert="
-                        ++ fiat
-
-                request =
-                    Http.get url (decodeCryptoPrice fiat)
-            in
-            Http.send NewPrice request
+        request =
+            Http.get url (decodeCryptoPrice fiat)
+    in
+    Http.send NewPrice request
 
 
-decodeCryptoPrice : String -> Decoder String
+ddecodeCryptoPrice : String -> Json.Decoder String
+ddecodeCryptoPrice fiat =
+    Json.index 0 (Json.field ("price_" ++ String.toLower fiat) Json.string)
+
+
+decodeCryptoPrice : String -> Json.Decoder Response
 decodeCryptoPrice fiat =
-    index 0 (field ("price_" ++ String.toLower fiat) string)
+    Json.index 0
+        (decode Response
+            |> required "price_usd" Json.string
+            |> optional ("price_" ++ String.toLower fiat) (Json.map Just Json.string) Nothing
+        )
 
 
 
@@ -162,7 +211,22 @@ view model =
         [ inputRow "Crypto name:" "e.g. bitcoin, ripple..." ChangeCryptoName
         , inputRow "Crypto amount:" "Enter amount..." ChangeCryptoAmount
         , inputRow "Convert to fiat:" "e.g. USD, EUR..." ChangeFiat
-        , div [] [ text model.output ]
+        , button [ onClick GetCryptoPrice ] [ text "Get crypto price" ]
+        , outputRow "Crypto name:" model.typeInput
+        , outputRow "Crypto amount:" model.amountInput
+        , outputRow "Convert to fiat:" model.fiatInput
+        , outputRow
+            "USD"
+            (model.valueUSD
+                |> zeroFloatIfNothing
+                |> toString
+            )
+        , outputRow
+            "Fiat"
+            (model.valueFiat
+                |> zeroFloatIfNothing
+                |> toString
+            )
         ]
 
 
@@ -176,18 +240,47 @@ inputRow label placeholderText msg =
         ]
 
 
+outputRow : String -> String -> Html Msg
+outputRow label output =
+    div []
+        [ span [] [ text label ]
+        , span [] [ text output ]
+        ]
+
+
 
 {-
-   view model =
-       div []
-           [ input
-               [ placeholder "Enter amount..."
-               , onInput ChangeInputText
-               ]
-               []
-           , button [ onClick ChangeOutputText ] [ text "Change amount" ]
-           , div [] [ text model.outputText ]
-           , button [ onClick GetCryptoPrice ] [ text ("Get " ++ model.cryptoName ++ " price") ]
-           , div [] [ text model.cryptoPrice ]
-           ]
+   resultRow : Model -> Html Msg
+   resultRow model =
+       div [] []
 -}
+
+
+stringOrError : Maybe String -> String -> String
+stringOrError string error =
+    case string of
+        Just string ->
+            string
+
+        Nothing ->
+            error
+
+
+maybeFloatToMaybeString : Maybe Float -> Maybe String
+maybeFloatToMaybeString float =
+    case float of
+        Just float ->
+            Just (toString float)
+
+        Nothing ->
+            Nothing
+
+
+floatToStringOrError : Maybe Float -> String -> String
+floatToStringOrError float error =
+    case float of
+        Just float ->
+            toString float
+
+        Nothing ->
+            error
