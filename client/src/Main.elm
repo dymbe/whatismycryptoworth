@@ -1,6 +1,8 @@
 module Main exposing (..)
 
 import Debug exposing (log)
+import FormatNumber exposing (format)
+import FormatNumber.Locales as Locales
 import Html exposing (..)
 import Html.Attributes exposing (placeholder)
 import Html.Events exposing (onClick, onInput)
@@ -24,11 +26,13 @@ main =
 
 
 type alias Model =
-    { typeInput : String
+    { nameInput : String
     , fiatInput : String
     , amountInput : String
+    , cryptoName : Maybe String
+    , cryptoSymbol : Maybe String
     , fiat : Maybe String
-    , amount : Maybe Float
+    , amount : Float
     , valueUSD : Maybe Float
     , valueFiat : Maybe Float
     }
@@ -36,11 +40,13 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { typeInput = ""
+    ( { nameInput = ""
       , fiatInput = ""
       , amountInput = ""
+      , cryptoName = Nothing
+      , cryptoSymbol = Nothing
       , fiat = Nothing
-      , amount = Nothing
+      , amount = 0
       , valueUSD = Nothing
       , valueFiat = Nothing
       }
@@ -61,7 +67,9 @@ type Msg
 
 
 type alias Response =
-    { valueUSD : String
+    { name : String
+    , symbol : String
+    , valueUSD : String
     , valueFiat : Maybe String
     }
 
@@ -70,7 +78,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ChangeCryptoName newName ->
-            ( { model | typeInput = newName }, Cmd.none )
+            ( { model | nameInput = newName }, Cmd.none )
 
         ChangeCryptoAmount newAmount ->
             ( { model | amountInput = newAmount }, Cmd.none )
@@ -79,15 +87,22 @@ update msg model =
             ( { model | fiatInput = newFiat }, Cmd.none )
 
         GetCryptoPrice ->
-            ( model, getCryptoPrice model.typeInput model.fiatInput )
-
-        NewPrice (Ok newPrice) ->
             ( { model
-                | valueUSD =
-                    newPrice.valueUSD
+                | fiat = Just model.fiatInput
+                , amount = stringToFloatOrZero model.amountInput
+              }
+            , getCryptoPrice model.nameInput model.fiatInput
+            )
+
+        NewPrice (Ok response) ->
+            ( { model
+                | cryptoName = Just response.name
+                , cryptoSymbol = Just response.symbol
+                , valueUSD =
+                    response.valueUSD
                         |> stringToMaybeFloat
                 , valueFiat =
-                    newPrice.valueFiat
+                    response.valueFiat
                         |> stringOrEmpty
                         |> stringToMaybeFloat
               }
@@ -100,7 +115,9 @@ update msg model =
                     log "error" e
             in
             ( { model
-                | valueUSD = Nothing
+                | cryptoName = Nothing
+                , cryptoSymbol = Nothing
+                , valueUSD = Nothing
                 , valueFiat = Nothing
               }
             , Cmd.none
@@ -123,6 +140,20 @@ stringOrEmpty str =
 
         Nothing ->
             ""
+
+
+stringToFloatOrZero : String -> Float
+stringToFloatOrZero string =
+    let
+        result =
+            String.toFloat string
+    in
+    case result of
+        Ok f ->
+            f
+
+        Err _ ->
+            0
 
 
 stringToMaybeFloat : String -> Maybe Float
@@ -165,17 +196,20 @@ getOutputText inputText =
 
 getCryptoPrice : String -> String -> Cmd Msg
 getCryptoPrice crypto fiat =
-    let
-        url =
-            "https://api.coinmarketcap.com/v1/ticker/"
-                ++ crypto
-                ++ "/?convert="
-                ++ fiat
+    if crypto |> isEmpty |> not then
+        let
+            url =
+                "https://api.coinmarketcap.com/v1/ticker/"
+                    ++ crypto
+                    ++ "/?convert="
+                    ++ fiat
 
-        request =
-            Http.get url (decodeCryptoPrice fiat)
-    in
-    Http.send NewPrice request
+            request =
+                Http.get url (decodeCryptoPrice fiat)
+        in
+        Http.send NewPrice request
+    else
+        Cmd.none
 
 
 ddecodeCryptoPrice : String -> Json.Decoder String
@@ -187,6 +221,8 @@ decodeCryptoPrice : String -> Json.Decoder Response
 decodeCryptoPrice fiat =
     Json.index 0
         (decode Response
+            |> required "name" Json.string
+            |> required "symbol" Json.string
             |> required "price_usd" Json.string
             |> optional ("price_" ++ String.toLower fiat) (Json.map Just Json.string) Nothing
         )
@@ -210,23 +246,9 @@ view model =
     div []
         [ inputRow "Crypto name:" "e.g. bitcoin, ripple..." ChangeCryptoName
         , inputRow "Crypto amount:" "Enter amount..." ChangeCryptoAmount
-        , inputRow "Convert to fiat:" "e.g. USD, EUR..." ChangeFiat
-        , button [ onClick GetCryptoPrice ] [ text "Get crypto price" ]
-        , outputRow "Crypto name:" model.typeInput
-        , outputRow "Crypto amount:" model.amountInput
-        , outputRow "Convert to fiat:" model.fiatInput
-        , outputRow
-            "USD"
-            (model.valueUSD
-                |> zeroFloatIfNothing
-                |> toString
-            )
-        , outputRow
-            "Fiat"
-            (model.valueFiat
-                |> zeroFloatIfNothing
-                |> toString
-            )
+        , inputRow "Preferred fiat:" "e.g. USD, EUR..." ChangeFiat
+        , button [ onClick GetCryptoPrice ] [ text "Get value" ]
+        , resultRow model
         ]
 
 
@@ -248,12 +270,39 @@ outputRow label output =
         ]
 
 
+resultRow : Model -> Html Msg
+resultRow model =
+    case model.valueUSD of
+        Just valueUSD ->
+            let
+                ( valueFiat, fiat ) =
+                    case model.valueFiat of
+                        Just float ->
+                            ( float, stringOrEmpty model.fiat )
 
-{-
-   resultRow : Model -> Html Msg
-   resultRow model =
-       div [] []
--}
+                        Nothing ->
+                            ( valueUSD, "USD" )
+            in
+            div []
+                [ div []
+                    [ h1 [] [ text (stringOrEmpty model.cryptoName) ]
+                    , h2 [] [ text ("$" ++ format Locales.usLocale valueUSD) ]
+                    ]
+                , div []
+                    [ text
+                        (format Locales.usLocale model.amount
+                            ++ " "
+                            ++ stringOrEmpty model.cryptoSymbol
+                            ++ " = "
+                            ++ format Locales.usLocale (model.amount * valueFiat)
+                            ++ " "
+                            ++ String.toUpper fiat
+                        )
+                    ]
+                ]
+
+        Nothing ->
+            div [] [ text "No valid cryptocurrency specified :/" ]
 
 
 stringOrError : Maybe String -> String -> String
