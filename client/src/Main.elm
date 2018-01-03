@@ -9,6 +9,7 @@ import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Json
 import Json.Decode.Pipeline exposing (decode, optional, required)
+import Json.Encode exposing (Value, encode, object)
 import String exposing (isEmpty)
 
 
@@ -56,6 +57,14 @@ init =
 
 
 
+{-
+   modelObjectify : Model -> Value
+   modelObjectify model =
+       object
+           [ ("nameInput" string model.nameInput)
+           , ("fiatInput" = string model.fiatInput)
+           , ("amountUnput" = string model.
+-}
 -- UPDATE
 
 
@@ -65,9 +74,14 @@ type Msg
     | ChangeFiat String
     | GetCryptoPrice
     | NewPrice (Result Http.Error Response)
-    | Save
-    | Load
-    | Receive String
+
+
+
+{-
+   | Save
+   | Load
+   | Receive String
+-}
 
 
 type alias Response =
@@ -78,18 +92,53 @@ type alias Response =
     }
 
 
-port save : String -> Cmd Msg
+
+{-
+   port save : String -> Cmd msg
 
 
-port load : () -> Cmd Msg
+   port load : () -> Cmd msg
 
 
-port receive : (String -> Msg) -> Sub Msg
+   port receive : (String -> msg) -> Sub msg
+
+
+      decodeLocalStorage : String -> Model
+      decodeLocalStorage string =
+-}
+
+
+modelDecoder : Json.Decoder Model
+modelDecoder =
+    decode Model
+        |> required "nameInput" Json.string
+        |> required "fiatInput" Json.string
+        |> required "amountInput" Json.string
+        |> required "cryptoName" (Json.nullable Json.string)
+        |> required "cryptoSymbol" (Json.nullable Json.string)
+        |> required "fiat" (Json.nullable Json.string)
+        |> required "amount" Json.float
+        |> required "valueUSD" (Json.nullable Json.float)
+        |> required "valueFiat" (Json.nullable Json.float)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        {-
+           Save ->
+               ( model, save (encode 4 model) )
+
+           Load ->
+               ( model, load () )
+
+           Receive value ->
+               let
+                   a =
+                       log value
+               in
+               ( model, Cmd.none )
+        -}
         ChangeCryptoName newName ->
             ( { model | nameInput = newName }, Cmd.none )
 
@@ -247,7 +296,7 @@ decodeCryptoPrice fiat =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    load Load
+    Sub.none
 
 
 
