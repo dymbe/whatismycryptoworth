@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>What is my crypto worth?</title>
+</head>
+
+<body>
+  <script src="main.js"></script>
+  <script>
+    var app = Elm.Main.fullscreen();
+
+	var storageKey = "elm-data";
+
+	app.ports.save.subscribe(function(value) {
+		localStorage.setItem(storageKey, value);
+		console.log(value);
+	});
+
+	app.ports.load.subscribe(function() {
+		if(localStorage.getItem(storageKey) != null) {
+			app.ports.receive.send(localStorage.getItem(storageKey));
+		}
+	});
+  </script>
+</body>
+
+</html>
