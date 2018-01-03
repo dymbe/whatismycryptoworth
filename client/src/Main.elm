@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Debug exposing (log)
 import FormatNumber exposing (format)
@@ -12,6 +12,7 @@ import Json.Decode.Pipeline exposing (decode, optional, required)
 import String exposing (isEmpty)
 
 
+main : Program Never Model Msg
 main =
     program
         { init = init
@@ -64,6 +65,9 @@ type Msg
     | ChangeFiat String
     | GetCryptoPrice
     | NewPrice (Result Http.Error Response)
+    | Save
+    | Load
+    | Receive String
 
 
 type alias Response =
@@ -72,6 +76,15 @@ type alias Response =
     , valueUSD : String
     , valueFiat : Maybe String
     }
+
+
+port save : String -> Cmd Msg
+
+
+port load : () -> Cmd Msg
+
+
+port receive : (String -> Msg) -> Sub Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -234,7 +247,7 @@ decodeCryptoPrice fiat =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    load Load
 
 
 
