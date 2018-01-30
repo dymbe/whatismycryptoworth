@@ -4,7 +4,7 @@ import Debug exposing (log)
 import FormatNumber exposing (format)
 import FormatNumber.Locales as Locales
 import Html exposing (..)
-import Html.Attributes exposing (placeholder)
+import Html.Attributes exposing (class, id, placeholder)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Json
@@ -305,7 +305,7 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ id "root" ]
         [ inputRow "Crypto name:" "e.g. bitcoin, ripple..." ChangeCryptoName
         , inputRow "Crypto amount:" "Enter amount..." ChangeCryptoAmount
         , inputRow "Preferred fiat:" "e.g. USD, EUR..." ChangeFiat
@@ -316,7 +316,7 @@ view model =
 
 inputRow : String -> String -> (String -> Msg) -> Html Msg
 inputRow label placeholderText msg =
-    div []
+    div [ class "inputRow" ]
         [ span [] [ text label ]
         , input
             [ placeholder placeholderText, onInput msg ]
@@ -326,7 +326,7 @@ inputRow label placeholderText msg =
 
 outputRow : String -> String -> Html Msg
 outputRow label output =
-    div []
+    div [ class "outputRow" ]
         [ span [] [ text label ]
         , span [] [ text output ]
         ]
@@ -345,12 +345,16 @@ resultRow model =
                         Nothing ->
                             ( valueUSD, "USD" )
             in
-            div []
-                [ div []
-                    [ h1 [] [ text (stringOrEmpty model.cryptoName) ]
-                    , h2 [] [ text ("$" ++ format Locales.usLocale valueUSD) ]
+            div [ class "resultRow" ]
+                [ div [ id "resultHeader" ]
+                    [ h1 []
+                        [ text
+                            (stringOrEmpty model.cryptoName
+                                ++ (" $" ++ format Locales.usLocale valueUSD)
+                            )
+                        ]
                     ]
-                , div []
+                , div [ id "resultText" ]
                     [ text
                         (format Locales.usLocale model.amount
                             ++ " "
@@ -364,7 +368,7 @@ resultRow model =
                 ]
 
         Nothing ->
-            div [] [ text "No valid cryptocurrency specified :/" ]
+            div [ id "noResult" ] [ text "No valid cryptocurrency specified :/" ]
 
 
 stringOrError : Maybe String -> String -> String

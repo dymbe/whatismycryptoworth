@@ -9461,7 +9461,11 @@ var _dymbe$whatismycryptoworth$Main$outputRow = F2(
 	function (label, output) {
 		return A2(
 			_elm_lang$html$Html$div,
-			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('outputRow'),
+				_1: {ctor: '[]'}
+			},
 			{
 				ctor: '::',
 				_0: A2(
@@ -9490,7 +9494,11 @@ var _dymbe$whatismycryptoworth$Main$inputRow = F3(
 	function (label, placeholderText, msg) {
 		return A2(
 			_elm_lang$html$Html$div,
-			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('inputRow'),
+				_1: {ctor: '[]'}
+			},
 			{
 				ctor: '::',
 				_0: A2(
@@ -9603,12 +9611,20 @@ var _dymbe$whatismycryptoworth$Main$resultRow = function (model) {
 		var fiat = _p9._1;
 		return A2(
 			_elm_lang$html$Html$div,
-			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('resultRow'),
+				_1: {ctor: '[]'}
+			},
 			{
 				ctor: '::',
 				_0: A2(
 					_elm_lang$html$Html$div,
-					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$id('resultHeader'),
+						_1: {ctor: '[]'}
+					},
 					{
 						ctor: '::',
 						_0: A2(
@@ -9617,31 +9633,26 @@ var _dymbe$whatismycryptoworth$Main$resultRow = function (model) {
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html$text(
-									_dymbe$whatismycryptoworth$Main$stringOrEmpty(model.cryptoName)),
-								_1: {ctor: '[]'}
-							}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$h2,
-								{ctor: '[]'},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text(
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										_dymbe$whatismycryptoworth$Main$stringOrEmpty(model.cryptoName),
 										A2(
 											_elm_lang$core$Basics_ops['++'],
-											'$',
-											A2(_cuducos$elm_format_number$FormatNumber$format, _cuducos$elm_format_number$FormatNumber_Locales$usLocale, _p11))),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}
+											' $',
+											A2(_cuducos$elm_format_number$FormatNumber$format, _cuducos$elm_format_number$FormatNumber_Locales$usLocale, _p11)))),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
 					}),
 				_1: {
 					ctor: '::',
 					_0: A2(
 						_elm_lang$html$Html$div,
-						{ctor: '[]'},
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$id('resultText'),
+							_1: {ctor: '[]'}
+						},
 						{
 							ctor: '::',
 							_0: _elm_lang$html$Html$text(
@@ -9672,7 +9683,11 @@ var _dymbe$whatismycryptoworth$Main$resultRow = function (model) {
 	} else {
 		return A2(
 			_elm_lang$html$Html$div,
-			{ctor: '[]'},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$id('noResult'),
+				_1: {ctor: '[]'}
+			},
 			{
 				ctor: '::',
 				_0: _elm_lang$html$Html$text('No valid cryptocurrency specified :/'),
@@ -9861,7 +9876,11 @@ var _dymbe$whatismycryptoworth$Main$ChangeCryptoName = function (a) {
 var _dymbe$whatismycryptoworth$Main$view = function (model) {
 	return A2(
 		_elm_lang$html$Html$div,
-		{ctor: '[]'},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$id('root'),
+			_1: {ctor: '[]'}
+		},
 		{
 			ctor: '::',
 			_0: A3(_dymbe$whatismycryptoworth$Main$inputRow, 'Crypto name:', 'e.g. bitcoin, ripple...', _dymbe$whatismycryptoworth$Main$ChangeCryptoName),

@@ -1,0 +1,32 @@
+html, body {
+  font-family: sans-serif;
+  padding: 0;
+  margin: 0;
+  background-color: #EEE;
+}
+
+#root {
+  position: relative;
+  border: 1px solid #000;
+  border-radius: 10px;
+  margin: 40px auto;
+  padding: 20px;
+  width: 400px;
+  background-color: white;
+}
+
+.inputRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+button {
+  margin: 20px auto;
+  display: block;
+  background-color: #0074d9;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  font-size: 18px;
+}

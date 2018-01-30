@@ -4,14 +4,18 @@
 <head>
   <meta charset="utf-8">
   <title>What is my crypto worth?</title>
+  <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 
 <body>
-  <script src="main.js"></script>
+  <script src="js/main.js"></script>
   <script>
-    var app = Elm.Main.fullscreen();
+  var app = Elm.Main.fullscreen();
 
-	var storageKey = "elm-data";
+  /* Code to communticate with elm via. ports, currently
+  work in progress
+
+  var storageKey = "elm-data";
 
 	app.ports.save.subscribe(function(value) {
 		localStorage.setItem(storageKey, value);
@@ -23,6 +27,8 @@
 			app.ports.receive.send(localStorage.getItem(storageKey));
 		}
 	});
+
+  */
   </script>
 </body>
 
